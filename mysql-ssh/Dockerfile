@@ -1,7 +1,7 @@
 FROM debian:stretch-slim
 
 # add our user and group first to make sure their IDs get assigned consistently, regardless of whatever dependencies get added
-RUN groupadd -r mysql && useradd -r -g mysql mysql
+RUN groupadd -r mysql && useradd -g root mysql
 
 RUN apt-get update && apt-get install -y --no-install-recommends gnupg dirmngr && rm -rf /var/lib/apt/lists/*
 
@@ -64,6 +64,10 @@ RUN { \
 # ensure that /var/run/mysqld (used for socket and lock files) is writable regardless of the UID our mysqld instance ends up having at runtime
 	&& chmod 777 /var/run/mysqld
 
+RUN chown -R root /usr/sbin/mysqld 
+#RUN chown -R mysql /var/log/mysql/
+RUN mkdir /var/log/mysql
+RUN chown mysql:mysql /var/log/mysql
 VOLUME /var/lib/mysql
 # Config files
 COPY config/ /etc/mysql/
@@ -77,7 +81,7 @@ RUN mkdir -p /var/run/sshd
 RUN echo 'root:pranjal@123' | chpasswd
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config 
 RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
-
+RUN ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key
 ENTRYPOINT ["docker-entrypoint.sh"]
 
 EXPOSE 3306 22
